@@ -1,47 +1,79 @@
+"use client";
+
+import Link from "next/link";
+
 export default function Home() {
   return (
-    <main className="min-h-screen bg-black text-white">
-      <section className="mx-auto flex min-h-screen max-w-6xl flex-col items-center justify-center px-6 text-center">
-        <div className="mb-6 rounded-full border border-cyan-500/30 bg-cyan-500/10 px-4 py-2 text-sm text-cyan-300">
-          Human Verification for the AI Era
-        </div>
+    <main className="min-h-screen p-8">
+      <div className="mx-auto flex max-w-4xl flex-col items-center text-center">
 
-        <h1 className="mb-6 text-5xl font-bold md:text-7xl">
-          iamhuman
+        <h1 className="mt-16 text-5xl font-bold">
+          iAmHuman
         </h1>
 
-        <h2 className="mb-8 max-w-3xl text-2xl font-semibold md:text-4xl">
-          AI can create almost anything.
-          <br />
-          Trust starts with knowing who is real.
-        </h2>
-
-        <p className="mb-10 max-w-2xl text-lg text-gray-400">
-          iamhuman helps people prove they are real humans without exposing
-          unnecessary personal information. A simple verification badge for an
-          AI-powered internet.
+        <p className="mt-4 text-xl">
+          A simple human verification system.
         </p>
 
-        <button className="rounded-xl bg-cyan-500 px-8 py-4 text-lg font-semibold text-black transition hover:bg-cyan-400">
-          Verify Me
-        </button>
+        <p className="mt-4 max-w-xl text-gray-600">
+          Create your verification ID, share your
+          verification link, and allow others to confirm
+          your verified status.
+        </p>
 
-        <div className="mt-16 rounded-2xl border border-gray-800 bg-zinc-900 p-8">
-          <p className="text-sm text-gray-400">Example Verification</p>
+        <div className="mt-10 flex gap-4">
 
-          <h3 className="mt-4 text-2xl font-bold">
-            ✓ VERIFIED HUMAN
-          </h3>
+          <Link
+            href="/signup"
+            className="rounded bg-black px-6 py-3 text-white"
+          >
+            Get Verified
+          </Link>
 
-          <p className="mt-2 text-cyan-400">
-            ID: IH-000001
-          </p>
+          <Link
+            href="/verify"
+            className="rounded border px-6 py-3"
+          >
+            Verify Someone
+          </Link>
 
-          <p className="mt-2 text-gray-400">
-            Verification Active
-          </p>
         </div>
-      </section>
+
+        <div className="mt-16 grid gap-6 md:grid-cols-3">
+
+          <div className="rounded border p-6">
+            <h2 className="font-bold">
+              1. Create
+            </h2>
+            <p className="mt-2 text-sm">
+              Sign up and receive your unique
+              verification ID.
+            </p>
+          </div>
+
+          <div className="rounded border p-6">
+            <h2 className="font-bold">
+              2. Share
+            </h2>
+            <p className="mt-2 text-sm">
+              Share your public verification link
+              or QR code.
+            </p>
+          </div>
+
+          <div className="rounded border p-6">
+            <h2 className="font-bold">
+              3. Verify
+            </h2>
+            <p className="mt-2 text-sm">
+              Anyone can check your verification
+              status.
+            </p>
+          </div>
+
+        </div>
+
+      </div>
     </main>
   );
 }
