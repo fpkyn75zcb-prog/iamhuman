@@ -1,168 +1,268 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
-import { auth, db } from "@/lib/firebase";
-import { doc, getDoc } from "firebase/firestore";
-import { onAuthStateChanged } from "firebase/auth";
-import { QRCodeSVG } from "qrcode.react";
-import html2canvas from "html2canvas";
 import AuthGuard from "@/components/AuthGuard";
-
-type Profile = {
-  email: string;
-  verification_id: string;
-  verified: boolean;
-  created_at?: any;
-};
+import { auth, db } from "@/lib/firebase";
+import {
+  doc,
+  getDoc,
+} from "firebase/firestore";
+import { useEffect, useRef, useState } from "react";
+import QRCode from "qrcode";
+import { signOut } from "firebase/auth";
 
 export default function DashboardPage() {
-  const [profile, setProfile] = useState<Profile | null>(null);
+  const [profile, setProfile] = useState<any>(null);
+  const [verificationId, setVerificationId] = useState("");
+  const [qrCode, setQrCode] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [message, setMessage] = useState("");
+
   const cardRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+    async function loadDashboard() {
+      const user = auth.currentUser;
+
       if (!user) return;
 
-      const profileRef = doc(db, "profiles", user.uid);
-      const profileSnap = await getDoc(profileRef);
+      const profileSnap = await getDoc(
+        doc(db, "profiles", user.uid)
+      );
 
       if (profileSnap.exists()) {
-        setProfile(profileSnap.data() as Profile);
+        setProfile(profileSnap.data());
       }
-    });
 
-    return () => unsubscribe();
+      const verificationSnap = await getDoc(
+        doc(db, "user_verifications", user.uid)
+      );
+
+      if (verificationSnap.exists()) {
+        const data = verificationSnap.data();
+
+        setVerificationId(data.verification_id);
+
+        const url = `${window.location.origin}/verify/${data.verification_id}`;
+
+        const qr = await QRCode.toDataURL(url);
+
+        setQrCode(qr);
+      }
+
+      setLoading(false);
+    }
+
+    loadDashboard();
   }, []);
 
-  if (!profile) {
+  async function downloadQRCode() {
+    if (!qrCode) return;
+
+    const link = document.createElement("a");
+
+    link.href = qrCode;
+    link.download = "iamhuman-qr.png";
+
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+
+  async function downloadVerificationCard() {
+    if (!cardRef.current) return;
+
+    try {
+      const element = cardRef.current;
+
+      const canvas = document.createElement("canvas");
+      const context = canvas.getContext("2d");
+
+      if (!context) return;
+
+      const rect = element.getBoundingClientRect();
+
+      canvas.width = rect.width * 2;
+      canvas.height = rect.height * 2;
+
+      context.scale(2, 2);
+
+      const background =
+        window.getComputedStyle(element).backgroundColor;
+
+      context.fillStyle = background || "#ffffff";
+
+      context.fillRect(
+        0,
+        0,
+        rect.width,
+        rect.height
+      );
+
+      const text =
+        element.innerText;
+
+      context.fillStyle = "#000000";
+      context.font = "16px Arial";
+
+      const lines = text.split("\n");
+
+      lines.forEach((line, index) => {
+        context.fillText(
+          line,
+          20,
+          40 + index * 25
+        );
+      });
+
+      const image = canvas.toDataURL("image/png");
+
+      const link = document.createElement("a");
+
+      link.href = image;
+      link.download = "iamhuman-verification-card.png";
+
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+
+      setMessage("Verification card downloaded");
+    } catch {
+      setMessage("Download failed");
+    }
+  }
+
+  async function logout() {
+    await signOut(auth);
+  }
+
+  if (loading) {
     return (
-      <main className="flex min-h-screen items-center justify-center">
-        Loading...
-      </main>
+      <AuthGuard>
+        <div className="p-10">
+          Loading dashboard...
+        </div>
+      </AuthGuard>
     );
   }
 
-  const verificationUrl =
-    `${window.location.origin}/verify/${profile.verification_id}`;
-
-  const copyLink = async () => {
-    await navigator.clipboard.writeText(verificationUrl);
-    alert("Verification link copied!");
-  };
-
-  const shareLink = async () => {
-    if (navigator.share) {
-      await navigator.share({
-        title: "iAmHuman Verification",
-        text: "Verify my iAmHuman profile",
-        url: verificationUrl,
-      });
-    } else {
-      copyLink();
-    }
-  };
-
-  const downloadCard = async () => {
-    if (!cardRef.current) return;
-
-    const canvas = await html2canvas(cardRef.current);
-
-    const link = document.createElement("a");
-    link.download = "iAmHuman-verification-card.png";
-    link.href = canvas.toDataURL();
-
-    link.click();
-  };
+  const verificationLink =
+    typeof window !== "undefined" && verificationId
+      ? `${window.location.origin}/verify/${verificationId}`
+      : "";
 
   return (
     <AuthGuard>
-      <main className="min-h-screen bg-gray-50 p-8">
-        <div className="mx-auto max-w-3xl">
+      <main className="min-h-screen bg-gray-100 p-6">
 
-          <h1 className="text-3xl font-bold">
-            iAmHuman Dashboard
-          </h1>
+        <div className="mx-auto max-w-3xl space-y-6">
+
+          <div className="flex justify-between items-center">
+            <h1 className="text-3xl font-bold">
+              iAmHuman Dashboard
+            </h1>
+
+            <button
+              onClick={logout}
+              className="rounded bg-black px-4 py-2 text-white"
+            >
+              Logout
+            </button>
+          </div>
+
 
           <div
             ref={cardRef}
-            className="mt-8 rounded-2xl bg-black p-8 text-white shadow-xl"
+            className="rounded-xl bg-white p-6 shadow"
           >
-            <h2 className="text-3xl font-bold">
-              iAmHuman
+            <h2 className="text-xl font-bold">
+              Verification Card
             </h2>
 
-            <p className="mt-2 text-gray-300">
-              Verified Human Identity
+            <p className="mt-3">
+              Username: {profile?.username || "User"}
             </p>
 
-            <div className="mt-6">
-              <p>Email:</p>
-              <p className="font-bold">
-                {profile.email}
-              </p>
+            <p>
+              Status:
+              {" "}
+              {profile?.verified
+                ? "Verified"
+                : "Pending Verification"}
+            </p>
 
-              <p className="mt-4">
-                Verification ID:
-              </p>
-
-              <p className="font-bold">
-                {profile.verification_id}
-              </p>
-
-              <p className="mt-4">
-                Status:
-              </p>
-
-              <p className="font-bold">
-                {profile.verified ? "VERIFIED" : "PENDING"}
-              </p>
-            </div>
-
-            <div className="mt-6 w-fit rounded-xl bg-white p-4">
-              <QRCodeSVG
-                value={verificationUrl}
-                size={150}
-              />
-            </div>
+            <p>
+              ID:
+              {" "}
+              {verificationId}
+            </p>
           </div>
 
-          <button
-            onClick={downloadCard}
-            className="mt-5 rounded-lg bg-blue-600 px-5 py-3 text-white"
-          >
-            Download Verification Card
-          </button>
 
-          <div className="mt-8 rounded-xl bg-white p-6 shadow">
+          <div className="rounded-xl bg-white p-6 shadow">
+
+            <h2 className="text-xl font-bold mb-4">
+              QR Verification
+            </h2>
+
+            {qrCode && (
+              <img
+                src={qrCode}
+                alt="Verification QR Code"
+                className="w-48"
+              />
+            )}
+
+            <button
+              onClick={downloadQRCode}
+              className="mt-4 rounded bg-blue-600 px-4 py-2 text-white"
+            >
+              Download QR
+            </button>
+
+          </div>
+
+
+          <div className="rounded-xl bg-white p-6 shadow">
+
             <h2 className="font-bold">
               Public Verification Link
             </h2>
 
-            <a
-              href={verificationUrl}
-              className="mt-2 block break-all text-blue-600 underline"
+            <p className="break-all mt-2">
+              {verificationLink}
+            </p>
+
+            <button
+              onClick={() => {
+                navigator.clipboard.writeText(
+                  verificationLink
+                );
+                setMessage("Link copied");
+              }}
+              className="mt-3 rounded bg-gray-900 px-4 py-2 text-white"
             >
-              {verificationUrl}
-            </a>
+              Copy Link
+            </button>
 
-            <div className="mt-4 flex gap-3 flex-wrap">
-              <button
-                onClick={copyLink}
-                className="rounded-lg bg-black px-4 py-2 text-white"
-              >
-                Copy Link
-              </button>
-
-              <button
-                onClick={shareLink}
-                className="rounded-lg bg-green-600 px-4 py-2 text-white"
-              >
-                Share
-              </button>
-            </div>
           </div>
 
+
+          <button
+            onClick={downloadVerificationCard}
+            className="rounded bg-green-600 px-4 py-3 text-white"
+          >
+            Download Verification Card
+          </button>
+
+
+          {message && (
+            <p className="text-sm">
+              {message}
+            </p>
+          )}
+
         </div>
+
       </main>
     </AuthGuard>
   );

@@ -1,10 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import {
-  auth,
-  db,
-} from "@/lib/firebase";
+import { auth, db } from "@/lib/firebase";
 
 import {
   doc,
@@ -30,6 +27,7 @@ type Profile = {
   display_name?: string;
   username?: string;
   bio?: string;
+  photo_url?: string;
 };
 
 
@@ -50,9 +48,11 @@ export default function ProfilePage() {
   const [bio, setBio] =
     useState("");
 
+  const [photoUrl, setPhotoUrl] =
+    useState("");
+
   const [loading, setLoading] =
     useState(false);
-
 
 
   useEffect(() => {
@@ -63,7 +63,6 @@ export default function ProfilePage() {
         async (user) => {
 
           if (!user) return;
-
 
           const profileSnap =
             await getDoc(
@@ -80,24 +79,13 @@ export default function ProfilePage() {
             const data =
               profileSnap.data() as Profile;
 
-
             setProfile(data);
 
-            setDisplayName(
-              data.display_name || ""
-            );
-
-            setUsername(
-              data.username || ""
-            );
-
-            setOldUsername(
-              data.username || ""
-            );
-
-            setBio(
-              data.bio || ""
-            );
+            setDisplayName(data.display_name || "");
+            setUsername(data.username || "");
+            setOldUsername(data.username || "");
+            setBio(data.bio || "");
+            setPhotoUrl(data.photo_url || "");
 
           }
 
@@ -115,13 +103,9 @@ export default function ProfilePage() {
 
     if (loading) return;
 
-
-    const user =
-      auth.currentUser;
-
+    const user = auth.currentUser;
 
     if (!user) return;
-
 
     setLoading(true);
 
@@ -132,7 +116,6 @@ export default function ProfilePage() {
         username
           .trim()
           .toLowerCase();
-
 
 
       if (!/^[a-z0-9_]{3,20}$/.test(cleanUsername)) {
@@ -146,9 +129,7 @@ export default function ProfilePage() {
       }
 
 
-
       if (cleanUsername !== oldUsername) {
-
 
         const usernameSnap =
           await getDoc(
@@ -158,7 +139,6 @@ export default function ProfilePage() {
               cleanUsername
             )
           );
-
 
 
         if (usernameSnap.exists()) {
@@ -172,7 +152,6 @@ export default function ProfilePage() {
         }
 
 
-
         if (oldUsername) {
 
           await deleteDoc(
@@ -184,7 +163,6 @@ export default function ProfilePage() {
           );
 
         }
-
 
 
         await setDoc(
@@ -201,7 +179,6 @@ export default function ProfilePage() {
       }
 
 
-
       await updateDoc(
         doc(
           db,
@@ -212,14 +189,12 @@ export default function ProfilePage() {
           display_name: displayName,
           username: cleanUsername,
           bio: bio,
+          photo_url: photoUrl,
         }
       );
 
 
-
-      setOldUsername(
-        cleanUsername
-      );
+      setOldUsername(cleanUsername);
 
 
       toast.success(
@@ -250,13 +225,9 @@ export default function ProfilePage() {
   if (!profile) {
 
     return (
-
       <main className="flex min-h-screen items-center justify-center">
-
         Loading...
-
       </main>
-
     );
 
   }
@@ -277,98 +248,87 @@ export default function ProfilePage() {
           </h1>
 
 
+          {photoUrl && (
+
+            <img
+              src={photoUrl}
+              alt="Avatar"
+              className="mt-6 h-24 w-24 rounded-full object-cover"
+            />
+
+          )}
+
 
           <label className="mt-6 block font-semibold">
+            Avatar URL
+          </label>
+
+          <input
+            value={photoUrl}
+            disabled={loading}
+            onChange={(e) =>
+              setPhotoUrl(e.target.value)
+            }
+            className="mt-2 w-full rounded border p-3"
+            placeholder="https://example.com/avatar.jpg"
+          />
+
+
+          <label className="mt-5 block font-semibold">
             Display Name
           </label>
 
           <input
-
             value={displayName}
-
             disabled={loading}
-
             onChange={(e) =>
-              setDisplayName(
-                e.target.value
-              )
+              setDisplayName(e.target.value)
             }
-
             className="mt-2 w-full rounded border p-3"
-
           />
-
 
 
           <label className="mt-5 block font-semibold">
             Username
           </label>
 
-
           <input
-
             value={username}
-
             disabled={loading}
-
             onChange={(e) =>
-              setUsername(
-                e.target.value
-              )
+              setUsername(e.target.value)
             }
-
             className="mt-2 w-full rounded border p-3"
-
           />
-
 
 
           <label className="mt-5 block font-semibold">
             Bio
           </label>
 
-
           <textarea
-
             value={bio}
-
             disabled={loading}
-
             onChange={(e) =>
-              setBio(
-                e.target.value
-              )
+              setBio(e.target.value)
             }
-
             rows={4}
-
             className="mt-2 w-full rounded border p-3"
-
           />
 
 
-
           <button
-
             onClick={saveProfile}
-
             disabled={loading}
-
             className="mt-6 rounded-lg bg-black px-5 py-3 text-white disabled:opacity-50"
-
           >
-
-            {loading
-              ? "Saving..."
-              : "Save Profile"}
-
+            {loading ? "Saving..." : "Save Profile"}
           </button>
 
 
         </div>
 
       </main>
-
 
     </AuthGuard>
 

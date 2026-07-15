@@ -2,134 +2,115 @@
 
 import { useState } from "react";
 import { createUserWithEmailAndPassword } from "firebase/auth";
-import {
-  doc,
-  setDoc,
-  getDoc,
-  serverTimestamp,
-} from "firebase/firestore";
+import { doc, setDoc, serverTimestamp } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
-import toast from "react-hot-toast";
+import { useRouter } from "next/navigation";
 
-export default function Signup() {
+export default function SignupPage() {
+  const router = useRouter();
+
   const [email, setEmail] = useState("");
-  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [username, setUsername] = useState("");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
-  async function signup() {
-    if (loading) return;
+  async function handleSignup(e: React.FormEvent) {
+    e.preventDefault();
 
     setLoading(true);
+    setError("");
 
     try {
-      const cleanUsername = username.trim().toLowerCase();
-
-      if (!/^[a-z0-9_]{3,20}$/.test(cleanUsername)) {
-        toast.error(
-          "Username must be 3–20 characters using letters, numbers, or underscores."
-        );
-        return;
-      }
-
-      const usernameRef = doc(db, "usernames", cleanUsername);
-      const usernameSnap = await getDoc(usernameRef);
-
-      if (usernameSnap.exists()) {
-        toast.error("Username is already taken.");
-        return;
-      }
-
-      const credential = await createUserWithEmailAndPassword(
+      const userCredential = await createUserWithEmailAndPassword(
         auth,
         email,
         password
       );
 
-      const user = credential.user;
+      const user = userCredential.user;
 
-      const verificationId =
-        "IH-" + Math.floor(100000 + Math.random() * 900000);
+      const verificationId = crypto.randomUUID();
 
-      await setDoc(usernameRef, {
+      await setDoc(doc(db, "profiles", user.uid), {
         uid: user.uid,
+        email: user.email,
+        username,
+        verified: false,
+        photo_url: "",
         created_at: serverTimestamp(),
       });
 
-      await setDoc(doc(db, "profiles", user.uid), {
-        id: user.uid,
-        email,
-        username: cleanUsername,
+      await setDoc(doc(db, "public_verifications", verificationId), {
+        uid: user.uid,
         verification_id: verificationId,
         verified: false,
         created_at: serverTimestamp(),
       });
 
-      await setDoc(
-        doc(db, "public_verifications", verificationId),
-        {
-          verification_id: verificationId,
-          verified: false,
-          created_at: serverTimestamp(),
-        }
-      );
+      await setDoc(doc(db, "user_verifications", user.uid), {
+        uid: user.uid,
+        verification_id: verificationId,
+        created_at: serverTimestamp(),
+      });
 
-      toast.success("Account created successfully!");
-
-    } catch (error: any) {
-      console.error(error);
-      toast.error(error.message || "Signup failed.");
+      router.push("/dashboard");
+    } catch (err: any) {
+      setError(err.message || "Signup failed");
     } finally {
       setLoading(false);
     }
   }
 
   return (
-    <main className="min-h-screen bg-black text-white flex items-center justify-center px-6">
-      <div className="w-full max-w-md rounded-3xl border border-white/10 p-8">
-
-        <h1 className="text-3xl font-bold">
-          Create your iAmHuman
+    <main className="min-h-screen flex items-center justify-center bg-gray-100 px-4">
+      <div className="w-full max-w-md bg-white rounded-xl shadow p-6">
+        <h1 className="text-2xl font-bold mb-6 text-center">
+          Create iAmHuman Account
         </h1>
 
-        <p className="mt-3 text-gray-400">
-          Start your human verification process.
-        </p>
+        {error && (
+          <div className="mb-4 rounded bg-red-100 p-3 text-sm text-red-700">
+            {error}
+          </div>
+        )}
 
-        <input
-          className="mt-8 w-full rounded-xl bg-white/10 p-4 outline-none"
-          type="email"
-          placeholder="Email address"
-          value={email}
-          disabled={loading}
-          onChange={(e) => setEmail(e.target.value)}
-        />
+        <form onSubmit={handleSignup} className="space-y-4">
+          <input
+            type="text"
+            placeholder="Username"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            className="w-full rounded border p-3"
+            required
+          />
 
-        <input
-          className="mt-4 w-full rounded-xl bg-white/10 p-4 outline-none"
-          placeholder="Username"
-          value={username}
-          disabled={loading}
-          onChange={(e) => setUsername(e.target.value)}
-        />
+          <input
+            type="email"
+            placeholder="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            className="w-full rounded border p-3"
+            required
+          />
 
-        <input
-          className="mt-4 w-full rounded-xl bg-white/10 p-4 outline-none"
-          type="password"
-          placeholder="Password"
-          value={password}
-          disabled={loading}
-          onChange={(e) => setPassword(e.target.value)}
-        />
+          <input
+            type="password"
+            placeholder="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="w-full rounded border p-3"
+            required
+          />
 
-        <button
-          onClick={signup}
-          disabled={loading}
-          className="mt-5 w-full rounded-xl bg-white py-4 font-semibold text-black disabled:cursor-not-allowed disabled:opacity-50"
-        >
-          {loading ? "Creating Account..." : "Continue"}
-        </button>
-
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full rounded bg-black p-3 text-white disabled:opacity-50"
+          >
+            {loading ? "Creating Account..." : "Sign Up"}
+          </button>
+        </form>
       </div>
     </main>
   );

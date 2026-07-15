@@ -14,22 +14,43 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+
 export const metadata: Metadata = {
-  title: "iAmHuman",
-  description: "Human verification platform",
+
+  title: "iAmHuman | Human Verification Platform",
+
+  description:
+    "Create, share, and verify human identity profiles with iAmHuman.",
+
+  keywords: [
+    "human verification",
+    "identity verification",
+    "verified profile",
+    "digital identity",
+  ],
+
+  icons: {
+    icon: "/icon.svg",
+  },
+
 };
+
 
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+
   return (
+
     <html
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
+
       <body className="min-h-full flex flex-col">
+
         <Navbar />
 
         <Toaster
@@ -42,8 +63,14 @@ export default function RootLayout({
           }}
         />
 
-        <main className="flex-1">{children}</main>
+        <main className="flex-1">
+          {children}
+        </main>
+
       </body>
+
     </html>
+
   );
+
 }
